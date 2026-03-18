@@ -46,6 +46,7 @@ namespace FMODUnity
         private List<string> sampleLoadRequests = new List<string>();
 
         private List<AttachedInstance> attachedInstances = new List<AttachedInstance>(128);
+        private Stack<AttachedInstance> poolAttachedInstances = new Stack<AttachedInstance>(16);
 
 #if UNITY_EDITOR
         private List<FMOD.Studio.EventInstance> eventPositionWarnings = new List<FMOD.Studio.EventInstance>();
@@ -480,6 +481,7 @@ retry:
                         attachedInstances[i].transform == null // destroyed game object
                         )
                     {
+                        poolAttachedInstances.Push(attachedInstances[i]);
                         attachedInstances[i] = attachedInstances[attachedInstances.Count - 1];
                         attachedInstances.RemoveAt(attachedInstances.Count - 1);
                         i--;
@@ -572,15 +574,35 @@ retry:
 
         private static AttachedInstance FindOrAddAttachedInstance(FMOD.Studio.EventInstance instance, Transform transform, FMOD.ATTRIBUTES_3D attributes)
         {
-            AttachedInstance attachedInstance = Instance.attachedInstances.Find(x => x.instance.handle == instance.handle);
+            var manager = Instance;
+            AttachedInstance attachedInstance = manager.attachedInstances.Find(x => x.instance.handle == instance.handle);
             if (attachedInstance == null)
             {
-                attachedInstance = new AttachedInstance();
-                Instance.attachedInstances.Add(attachedInstance);
+                attachedInstance = CreateAttachedInstance();
+                manager.attachedInstances.Add(attachedInstance);
             }
             attachedInstance.instance = instance;
             attachedInstance.transform = transform;
             attachedInstance.instance.set3DAttributes(attributes);
+            return attachedInstance;
+        }
+
+        private static AttachedInstance CreateAttachedInstance()
+        {
+            if (!Instance.poolAttachedInstances.TryPop(out AttachedInstance attachedInstance))
+            {
+                return new AttachedInstance();
+            }
+            
+            #if UNITY_PHYSICS_EXIST
+            attachedInstance.rigidBody = null;
+            #endif
+            attachedInstance.lastFramePosition = default;
+            attachedInstance.nonRigidbodyVelocity = false;
+            #if UNITY_PHYSICS2D_EXIST
+            attachedInstance.rigidBody2D = null;
+            #endif
+            
             return attachedInstance;
         }
 
@@ -648,6 +670,7 @@ retry:
             {
                 if (manager.attachedInstances[i].instance.handle == instance.handle)
                 {
+                    manager.poolAttachedInstances.Push(manager.attachedInstances[i]);
                     manager.attachedInstances[i] = manager.attachedInstances[manager.attachedInstances.Count - 1];
                     manager.attachedInstances.RemoveAt(manager.attachedInstances.Count - 1);
                     return;
