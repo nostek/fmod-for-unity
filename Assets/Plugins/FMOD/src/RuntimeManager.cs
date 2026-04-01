@@ -578,7 +578,7 @@ retry:
             AttachedInstance attachedInstance = manager.attachedInstances.Find(x => x.instance.handle == instance.handle);
             if (attachedInstance == null)
             {
-                attachedInstance = CreateAttachedInstance();
+                attachedInstance = GetOrCreateAttachedInstance();
                 manager.attachedInstances.Add(attachedInstance);
             }
             attachedInstance.instance = instance;
@@ -587,7 +587,7 @@ retry:
             return attachedInstance;
         }
 
-        private static AttachedInstance CreateAttachedInstance()
+        private static AttachedInstance GetOrCreateAttachedInstance()
         {
             if (!Instance.poolAttachedInstances.TryPop(out AttachedInstance attachedInstance))
             {
