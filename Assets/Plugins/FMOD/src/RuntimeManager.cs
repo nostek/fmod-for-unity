@@ -600,12 +600,11 @@ retry:
 
         private static AttachedInstance GetOrCreateAttachedInstance()
         {
-            if (!Instance.poolAttachedInstances.TryPop(out AttachedInstance attachedInstance))
+            if (Instance.poolAttachedInstances.TryPop(out AttachedInstance attachedInstance))
             {
-                return new AttachedInstance();
+                return attachedInstance;
             }
-            
-            return attachedInstance;
+            return new AttachedInstance();
         }
 
         private static void ReturnAttachedInstance(AttachedInstance attachedInstance)
