@@ -481,7 +481,7 @@ retry:
                         attachedInstances[i].transform == null // destroyed game object
                         )
                     {
-                        poolAttachedInstances.Push(attachedInstances[i]);
+                        ReturnAttachedInstance(attachedInstances[i]);
                         attachedInstances[i] = attachedInstances[attachedInstances.Count - 1];
                         attachedInstances.RemoveAt(attachedInstances.Count - 1);
                         i--;
@@ -594,6 +594,12 @@ retry:
                 return new AttachedInstance();
             }
             
+            return attachedInstance;
+        }
+
+        private static void ReturnAttachedInstance(AttachedInstance attachedInstance)
+        {
+            attachedInstance.transform = null;
             #if UNITY_PHYSICS_EXIST
             attachedInstance.rigidBody = null;
             #endif
@@ -603,7 +609,7 @@ retry:
             attachedInstance.rigidBody2D = null;
             #endif
             
-            return attachedInstance;
+            Instance.poolAttachedInstances.Push(attachedInstance);
         }
 
         public static void AttachInstanceToGameObject(FMOD.Studio.EventInstance instance, GameObject gameObject, bool nonRigidbodyVelocity = false)
@@ -670,7 +676,7 @@ retry:
             {
                 if (manager.attachedInstances[i].instance.handle == instance.handle)
                 {
-                    manager.poolAttachedInstances.Push(manager.attachedInstances[i]);
+                    ReturnAttachedInstance(manager.attachedInstances[i]);
                     manager.attachedInstances[i] = manager.attachedInstances[manager.attachedInstances.Count - 1];
                     manager.attachedInstances.RemoveAt(manager.attachedInstances.Count - 1);
                     return;
